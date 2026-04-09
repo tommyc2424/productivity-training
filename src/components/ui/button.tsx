@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -42,18 +43,42 @@ const buttonVariants = cva(
   }
 )
 
+interface ButtonProps extends ButtonPrimitive.Props, VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+  children?: React.ReactNode
+}
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  asChild,
+  children,
+  render,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
+  // When asChild is used the caller passes a single ReactElement child (e.g. <Link>).
+  // We forward it as the base-ui `render` prop so the button renders as that element.
+  const resolvedRender = asChild && React.isValidElement(children)
+    ? React.cloneElement(children as React.ReactElement<{ children?: React.ReactNode }>, {
+        children: (children as React.ReactElement<{ children?: React.ReactNode }>).props.children,
+      })
+    : render
+
+  const hasCustomRender = !!resolvedRender
+
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      render={resolvedRender}
+      nativeButton={hasCustomRender ? false : undefined}
       {...props}
-    />
+    >
+      {asChild && React.isValidElement(children)
+        ? (children as React.ReactElement<{ children?: React.ReactNode }>).props.children
+        : children}
+    </ButtonPrimitive>
   )
 }
 
